@@ -33,8 +33,9 @@ server.use((req, res, next)=>{
 function checkProjectExist(req, res, next){
   const id = req.params;
   const title = req.body.title;
-  const project = projects.find(p => p.id == id && p.title == title);
-  if(!!project){
+  const project = projects.findIndex(p => p.id == id && p.title == title);
+  // const project = projects.find(p => p.id == id && p.title == title);
+  if(!project){
     return res.status(400).json({ error : 'Este projeto não existe!'});
   }else{
     req.project = project;  

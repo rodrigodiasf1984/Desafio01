@@ -30,52 +30,70 @@ server.use((req, res, next)=>{
   next();
 });
 
-function checkProjectExist(req, res, next){
-  const id = req.params;
-  const title = req.body.title;
-  const project = projects.findIndex(p => p.id == id && p.title == title);
-  // const project = projects.find(p => p.id == id && p.title == title);
-  if(!project){
-    return res.status(400).json({ error : 'Este projeto não existe!'});
-  }else{
-    req.project = project;  
+function checkTitle(req, res, next){
+  if(!req.body.title){
+    return res.status(400).json({ error : 'O título do projeto é obrigatório!'});
   }
-  return next(); 
+  next();
 }
 
+function checkProjectNotExist(req, res, next){
+  //const project = projects[req.params.id];
+  const project = projects.find(p => p.id == req.params.id || p.title == req.body.title);
+  if(project){
+    return res.status(400).json({ error : 'Este projeto já existe!'});
+  }
+  next(); 
+}
+
+function checkProjectExist(req, res, next){
+  const project = projects.find(p => p.id == req.params.id || p.title == req.body.title);
+  if(!project){
+    return res.status(400).json({ error : 'Este projeto não existe!'});
+  }
+  if(project!=undefined){
+    req.project = project;
+    next();
+  }
+  
+}
 //=>Lista todos os projetos
 server.get('/projects',(req, res)=>{
   return res.json(projects);  
 });
 //Lista um project
 server.get('/projects/:id',checkProjectExist, (req, res)=>{  
-  return res.json(req.project);
+  const { id } = req.params;
+  return res.json(projects[id]);
 });
 //=>Cadastrar novo project sem task
-server.post('/projects/:id', checkProjectExist, (req, res)=>{
+server.post('/projects/:id', checkTitle, checkProjectNotExist,(req, res)=>{
   const { id } = req.params;
   const { title } = req.body;
-  const project = {id: id, title: title, tasks:[]};  
+
+  const project = {id: id, title: title, tasks:[]};
+  projects.push(project);
+  return res.json(project);
+    
+});
+//Cadastrar novo project com o nome da task
+server.post('/projects/:id', checkTitle, checkProjectNotExist, (req, res)=>{
+  const { id } = req.params;
+  const { titleTask } = req.body;  
+  const project = {id:id, title:title, tasks:[titleTask]};  
+
   projects.push(project);
   return res.json(project);
 });
-//Cadastrar novo project com o nome da task
-server.post('/projects/:id', checkProjectExist, (req, res)=>{
-  const { id } = req.params;
-  const { titleTask } = req.body;
-  const project = {id:id, title:title, tasks:[titleTask]};
-  projects.push(project);
-  return res.json(projects);
-});
 //Alterar o nome do project
-server.put('/projects/:id', checkProjectExist, (req, res)=>{
+server.put('/projects/:id', checkProjectExist, checkTitle, (req, res)=>{
   const { id } = req.params;
   const { title } = req.body;
   projects[id].title = title;
   return res.json(projects);
 });
 //Apaga um project
-server.delete('/projects/:id', checkProjectExist,(req, res)=>{
+server.delete('/projects/:id', checkProjectExist, (req, res)=>{
   const { id } = req.params;
   projects.splice(id, 1);
   return res.send();
